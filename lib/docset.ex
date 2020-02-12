@@ -62,7 +62,9 @@ defmodule ExDash.Docset do
   defp build_sqlite_db(project_nodes, config, database_path) do
     SQLite.create_index(database_path)
 
-    Autolink.all(project_nodes, ".html", config.deps)
+    autolink = Autolink.compile(project_nodes, ".html", config.deps)
+
+    Autolink.all(project_nodes, autolink)
     |> Enum.map(&index_node(&1, database_path))
   end
 
