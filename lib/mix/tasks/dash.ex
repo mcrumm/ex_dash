@@ -24,24 +24,20 @@ defmodule Mix.Tasks.Docs.Dash do
       Default: first two characters of the project name. (i.e. `ex` for `ex_dash`).
 
   """
-  @spec run(args) :: String.t
+  @spec run(args) :: String.t()
   def run(args \\ []) do
-    {opts, _, _} =
-      OptionParser.parse(args, switches: [open: :boolean, name: :string])
+    {opts, _, _} = OptionParser.parse(args, switches: [open: :boolean, name: :string])
 
-    name =
-      Keyword.get(opts, :name)
+    name = Keyword.get(opts, :name)
 
-    abbr =
-      Keyword.get(opts, :abbr)
+    abbr = Keyword.get(opts, :abbr)
 
     Store.start_link()
 
     Store.set(:name, name)
     Store.set(:abbreviation, abbr)
 
-    [doc_set_path] =
-      Docs.run(["-f", ExDash])
+    [doc_set_path] = Docs.run(["-f", ExDash])
 
     auto_open? =
       Keyword.get_lazy(opts, :open, fn ->

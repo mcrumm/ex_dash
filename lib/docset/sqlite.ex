@@ -8,17 +8,21 @@ defmodule ExDash.Docset.SQLite do
     defexception message: "default message", exit_code: 1
   end
 
-  @type query :: String.t
-  @type query_result :: String.t
+  @type query :: String.t()
+  @type query_result :: String.t()
 
-  @spec create_index(String.t) :: :ok
+  @spec create_index(String.t()) :: :ok
   def create_index(db) do
-    exec!(db, "CREATE TABLE searchIndex(id INTEGER PRIMARY KEY, name TEXT, type TEXT, path TEXT);")
+    exec!(
+      db,
+      "CREATE TABLE searchIndex(id INTEGER PRIMARY KEY, name TEXT, type TEXT, path TEXT);"
+    )
+
     exec!(db, "CREATE UNIQUE INDEX anchor ON searchIndex (name, type, path);")
     :ok
   end
 
-  @spec index_item(Map.t, String.t, String.t, String.t) :: :ok
+  @spec index_item(Map.t(), String.t(), String.t(), String.t()) :: :ok
   def index_item(db, name, type, path) do
     query =
       "INSERT OR IGNORE INTO searchIndex(name, type, path) VALUES ('#{name}', '#{type}', '#{path}');"
@@ -27,7 +31,6 @@ defmodule ExDash.Docset.SQLite do
     :ok
   end
 
-
   @doc ~S"""
   Executes given query onto a database.
 
@@ -35,13 +38,11 @@ defmodule ExDash.Docset.SQLite do
     IO.format("Results: #{results}")
 
   """
-  @spec exec!(String.t, query) :: query_result
+  @spec exec!(String.t(), query) :: query_result
   def exec!(database, query) do
-    args =
-      [database, query]
+    args = [database, query]
 
-    options =
-      [stderr_to_stdout: true]
+    options = [stderr_to_stdout: true]
 
     case System.cmd("sqlite3", args, options) do
       {results, 0} ->
@@ -54,5 +55,4 @@ defmodule ExDash.Docset.SQLite do
         raise(SQLError, message: "#{error}", exit_code: exit_code)
     end
   end
-
 end

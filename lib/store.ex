@@ -35,15 +35,13 @@ defmodule ExDash.Store do
   ### Callbacks
 
   def handle_call({:get, key}, _from, state) do
-    val =
-      Map.get(state, key)
+    val = Map.get(state, key)
 
     {:reply, val, state}
   end
 
   def handle_cast({:set, key, val}, state) do
-    updated_state =
-      Map.put(state, key, val)
+    updated_state = Map.put(state, key, val)
 
     {:noreply, updated_state}
   end

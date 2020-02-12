@@ -16,18 +16,17 @@ defmodule ExDash.Injector do
   """
 
   alias Floki
-  alias ExDash.Injector.{Type,Function,Callback,Macro}
+  alias ExDash.Injector.{Type, Function, Callback, Macro}
 
-  @type doc_path :: String.t
-  @type id :: String.t
-  @type html_content :: String.t
+  @type doc_path :: String.t()
+  @type id :: String.t()
+  @type html_content :: String.t()
 
   @dash_anchor_injectors [Type, Function, Callback, Macro]
 
   # Injector callbacks
   @callback find_ids(html_content) :: [id]
-  @callback match_and_anchor(id) :: [{String.t, String.t}]
-
+  @callback match_and_anchor(id) :: [{String.t(), String.t()}]
 
   @doc """
   inject_all/1 takes a path to an html file and runs some injections over it.
@@ -50,8 +49,7 @@ defmodule ExDash.Injector do
   defp inject_dash_anchors(html_content, dash_anchor_injectors \\ @dash_anchor_injectors) do
     dash_anchor_injectors
     |> Enum.reduce(html_content, fn injector, html_content ->
-      meta_type_ids =
-        injector.find_ids(html_content)
+      meta_type_ids = injector.find_ids(html_content)
 
       match_and_anchors =
         meta_type_ids
@@ -65,13 +63,16 @@ defmodule ExDash.Injector do
     {
       "<section class=\"content\"",
       "<section class=\"content\" style=\"padding-left: 0;\""
-    }, {
+    },
+    {
       "<button class=\"sidebar-toggle\">",
       "<button class=\"sidebar-toggle\" style=\"visibility: hidden\">"
-    }, {
+    },
+    {
       "<section class=\"sidebar\"",
       "<section class=\"sidebar\" style=\"visibility: hidden\""
-    }, {
+    },
+    {
       "<div id=\"content\" class=\"content-inner\">",
       "<div id=\"content\" class=\"content-inner\" style=\"margin: 0; margin-top: -28px; padding: 0px 14px;\">"
     }
@@ -82,7 +83,8 @@ defmodule ExDash.Injector do
     find_and_replace_in_html(html_content, @ex_doc_html_match_and_replace)
   end
 
-  @spec find_and_replace_in_html(html_content, [{match :: String.t, replacement :: String.t}]) :: html_content
+  @spec find_and_replace_in_html(html_content, [{match :: String.t(), replacement :: String.t()}]) ::
+          html_content
   defp find_and_replace_in_html(html_content, matches_and_replacements) do
     matches_and_replacements
     |> Enum.reduce(html_content, fn {match, replace}, html_content ->
@@ -90,21 +92,17 @@ defmodule ExDash.Injector do
     end)
   end
 
-
   @doc """
   Returns a list of ids for the given selector and parse function.
 
   """
-  @spec find_ids_in_list(html_content, String.t, ((html_content) -> String.t)) :: [id]
+  @spec find_ids_in_list(html_content, String.t(), (html_content -> String.t())) :: [id]
   def find_ids_in_list(html_content, list_selector, id_parser) do
-    html_content
-    |> Floki.find(list_selector)
-    |> case do
-      [] -> []
-      types ->
-        types |> Enum.map(&id_parser.(&1))
+    with {:ok, parsed_content} <- Floki.parse_document(html_content),
+         types when types != [] <- Floki.find(parsed_content, list_selector) do
+      types |> Enum.map(&id_parser.(&1)) |> Enum.flat_map(& &1)
+    else
+      _ -> []
     end
-    |> Enum.flat_map(&(&1))
   end
-
 end

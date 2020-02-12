@@ -18,13 +18,11 @@ defmodule ExDash.Docset do
     * writes content to the Info.plist
 
   """
-  @spec build(list, ExDoc.Config.t) :: {config :: ExDoc.Config.t, docset_path :: String.t}
+  @spec build(list, ExDoc.Config.t()) :: {config :: ExDoc.Config.t(), docset_path :: String.t()}
   def build(project_nodes, config) do
-    {docset_docpath, database_path, docset_root_path} =
-      init_docset(config)
+    {docset_docpath, database_path, docset_root_path} = init_docset(config)
 
-    config =
-      %{config | output: docset_docpath}
+    config = %{config | output: docset_docpath}
 
     build_sqlite_db(project_nodes, config, database_path)
 
@@ -40,6 +38,7 @@ defmodule ExDash.Docset do
       case config.version do
         "dev" ->
           "#{config.project}.docset"
+
         version ->
           "#{config.project} #{version}.docset"
       end
@@ -48,8 +47,7 @@ defmodule ExDash.Docset do
     docset_docpath = Path.join(docset_root, "/Contents/Resources/Documents")
     docset_sqlitepath = Path.join(docset_root, "/Contents/Resources/docSet.dsidx")
 
-    is_new_docset? =
-      not(File.exists?(docset_root))
+    is_new_docset? = not File.exists?(docset_root)
 
     Store.set(:is_new_docset, is_new_docset?)
 
@@ -62,7 +60,9 @@ defmodule ExDash.Docset do
   defp build_sqlite_db(project_nodes, config, database_path) do
     SQLite.create_index(database_path)
 
-    Autolink.all(project_nodes, ".html", config.deps)
+    autolink = Autolink.compile(project_nodes, ".html", config.deps)
+
+    Autolink.all(project_nodes, autolink)
     |> Enum.map(&index_node(&1, database_path))
   end
 
@@ -101,32 +101,31 @@ defmodule ExDash.Docset do
   end
 
   defp log(path) do
-    cwd = File.cwd!
-    Mix.shell.info [:green, "* creating ", :reset, Path.relative_to(path, cwd)]
+    cwd = File.cwd!()
+    Mix.shell().info([:green, "* creating ", :reset, Path.relative_to(path, cwd)])
     path
   end
 
   defp write_plist(config) do
-    content =
-      info_plist_content(config)
+    content = info_plist_content(config)
 
     "#{config.output}/../../Info.plist" |> log |> File.write(content)
   end
 
   @info_plist_template """
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-	<key>CFBundleIdentifier</key> <string>{{CONFIG_PROJECT}}-{{CONFIG_VERSION}}</string>
-	<key>CFBundleName</key> <string>{{CONFIG_PROJECT}} {{CONFIG_VERSION}}</string>
-	<key>DocSetPlatformFamily</key> <string>{{CONFIG_PROJECT_ABBREV}}</string>
-	<key>isDashDocset</key> <true/>
-	<key>isJavaScriptEnabled</key> <true/>
-	<key>dashIndexFilePath</key> <string>index.html</string>
-	<key>DashDocSetFamily</key> <string>dashtoc</string>
-</dict>
-</plist>
+  <?xml version="1.0" encoding="UTF-8"?>
+  <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+  <plist version="1.0">
+  <dict>
+  <key>CFBundleIdentifier</key> <string>{{CONFIG_PROJECT}}-{{CONFIG_VERSION}}</string>
+  <key>CFBundleName</key> <string>{{CONFIG_PROJECT}} {{CONFIG_VERSION}}</string>
+  <key>DocSetPlatformFamily</key> <string>{{CONFIG_PROJECT_ABBREV}}</string>
+  <key>isDashDocset</key> <true/>
+  <key>isJavaScriptEnabled</key> <true/>
+  <key>dashIndexFilePath</key> <string>index.html</string>
+  <key>DashDocSetFamily</key> <string>dashtoc</string>
+  </dict>
+  </plist>
   """
 
   defp info_plist_content(%{project: name, version: version}) do
@@ -134,6 +133,7 @@ defmodule ExDash.Docset do
       case version do
         "dev" ->
           ""
+
         version ->
           version
       end
@@ -152,5 +152,4 @@ defmodule ExDash.Docset do
     |> String.replace("{{CONFIG_VERSION}}", version)
     |> String.replace("{{CONFIG_PROJECT_ABBREV}}", abbreviation)
   end
-
 end
