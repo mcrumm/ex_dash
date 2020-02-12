@@ -36,7 +36,7 @@ defmodule ExDash.Mixfile do
     [
       {:ex_doc, "~> 0.21"},
       {:floki, "~> 0.24.0"},
-      {:cortex, "~> 0.1"}
+      {:cortex, ">= 0.1.0", optional: true}
     ]
   end
 
